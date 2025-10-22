@@ -29,6 +29,14 @@ services:
       dockerfile: Dockerfile
     environment:
       - OPENAI_API_KEY=sk-xxx
+      - TZ=Asia/Shanghai
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=myredispassword
+      - DIY_AGENT_PORT=8911
+      - WORKERS=2
+      - MAX_CONCURRENCY=1000
+      - DASHSCOPE=false
     depends_on:
       redis:
         condition: service_healthy
