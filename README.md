@@ -7,7 +7,7 @@
 
 DiyAgent is an AI long article generation assistant built on a minimalist agentic micro-framework.
 
-The meaning of "Diy" is that this project serves only as a reference implementation of the most simplified agentic AI application framework. No other frameworks involved.
+The meaning of "Diy" is that this project serves only as a reference implementation of the most simplified agentic AI application framework. 
 
 
 [Story Example](https://raw.githubusercontent.com/neil-peng/DiyAgent/refs/heads/main/assets/%E9%BD%BF%E8%BD%AE%E4%B9%8B%E5%BF%83%EF%BC%9A%E6%9C%AA%E6%9D%A5%E7%9A%84%E4%BA%BA%E6%80%A7%E5%9B%9E%E5%93%8D.txt) - View the novel example file in the assets directory
