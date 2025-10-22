@@ -12,7 +12,7 @@ Diy的意思是这个项目仅仅作为一个参考实现一个最为简化的ag
 
 ### 样例小说
 
-assets/- 查看assets目录中的小说样例文件
+[小说示例](https://raw.githubusercontent.com/neil-peng/DiyAgent/refs/heads/main/assets/%E9%BD%BF%E8%BD%AE%E4%B9%8B%E5%BF%83%EF%BC%9A%E6%9C%AA%E6%9D%A5%E7%9A%84%E4%BA%BA%E6%80%A7%E5%9B%9E%E5%93%8D.txt) - 查看assets目录中的小说样例文件
 
 
 ### 框架介绍
