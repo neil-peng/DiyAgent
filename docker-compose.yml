@@ -1,0 +1,72 @@
+version: "3.9"
+
+x-healthcheck-curl: &healthcurl
+  test: ["CMD-SHELL", "curl -fsS http://localhost:8911/actuator/health || exit 1"]
+  interval: 10s
+  timeout: 3s
+  retries: 10
+  start_period: 15s
+
+services:
+  redis:
+    image: redis:7.4
+    command: ["redis-server", "--requirepass", "myredispassword"]
+    volumes:
+      - redis-data:/data
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a myredispassword ping | grep PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [diyagent]
+    expose: ["6379"]
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPENAI_API_KEY=sk-xxx
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      <<: *healthcurl
+    networks: [diyagent]
+    ports:
+      - "8911:8911"
+    volumes:
+      - ./log:/app/log
+      - ./assets:/app/assets
+
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    environment:
+      - TZ=Asia/Shanghai
+      - REACT_APP_API_BASE_URL=/api
+      - DOCKER_ENV=true
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [diyagent]
+    volumes:
+      - ./ui/src:/app/src
+      - ./ui/public:/app/public
+
+networks:
+  diyagent:
+    name: diyagent-network
+
+volumes:
+  redis-data:
