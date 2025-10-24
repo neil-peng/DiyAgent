@@ -15,8 +15,8 @@ Diy的意思是这个项目仅仅作为一个参考实现一个最为简化的ag
 [小说示例](https://raw.githubusercontent.com/neil-peng/DiyAgent/refs/heads/main/assets/%E9%BD%BF%E8%BD%AE%E4%B9%8B%E5%BF%83%EF%BC%9A%E6%9C%AA%E6%9D%A5%E7%9A%84%E4%BA%BA%E6%80%A7%E5%9B%9E%E5%93%8D.txt) - 查看assets目录中的小说样例文件
 
 ![开场页](assets/show1.png)
-![工具交互页](assets/show2.png)
-
+![工具交互页1](assets/show2.png)
+![工具交互页2](assets/show3.png)
 
 ### 框架介绍
 
@@ -30,7 +30,8 @@ multi-agent： 工具中再次调用下一个agent而已，树状展开
 
 - **data** - 用于流式输出AI响应内容
 - **tool_message** - 工具调用执行结果
-- **tool_call** - 工具调用前的确认信息
+- **tool_call** - 工具调用前的确认信息(确认类型包括：确认， 取消， 编辑确认， 重新生成)
+
 
 
 

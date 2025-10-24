@@ -13,7 +13,9 @@ The meaning of "Diy" is that this project serves only as a reference implementat
 [Story Example](https://raw.githubusercontent.com/neil-peng/DiyAgent/refs/heads/main/assets/%E9%BD%BF%E8%BD%AE%E4%B9%8B%E5%BF%83%EF%BC%9A%E6%9C%AA%E6%9D%A5%E7%9A%84%E4%BA%BA%E6%80%A7%E5%9B%9E%E5%93%8D.txt) - View the novel example file in the assets directory
 
 ![start](assets/show1.png)
-![tool confirm](assets/show2.png)
+![tool confirm1](assets/show2.png)
+![tool confirm2](assets/show3.png)
+
 
 
 ### Framework Introduction
@@ -28,7 +30,7 @@ Multi-agent: Simply calling the next agent within tools, expanding in a tree str
 
 - **data** - For streaming AI response content output
 - **tool_message** - Tool execution results
-- **tool_call** - Confirmation information before tool execution
+- **tool_call** - Confirmation information before tool execution (confirmation types include: confirm, cancel, edit confirmation, regenerate)
 
 ### Agent Components
 
