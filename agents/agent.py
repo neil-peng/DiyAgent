@@ -53,7 +53,6 @@ class Agent:
 
     def call(self, session: Session, user_input: str,
              tool_calls_to_confirm_feedback: list[ToolCallToConfirm]) -> Generator:
-        # Input parameter validation: user input and tool call confirmation feedback can only have one non-empty and cannot both be empty
         if user_input and tool_calls_to_confirm_feedback:
             raise Exception(
                 "user_input and tool_calls_to_confirm_feedback cannot both be non-empty")
@@ -117,7 +116,7 @@ class Agent:
             finish_answer_message = ToolMessage
             if len(tool_messages) > 0:
                 # Return tool call results
-                for tool_message in tool_messages:
+                for tool_message in (m for m in tool_messages if m is not None):
                     # If tool call result is task completion, end loop
                     if tool_message.name == "final_answer":
                         log(session.session_id, f"got task_finish: {tool_message}",
@@ -128,7 +127,7 @@ class Agent:
                         yield tool_message
 
                 # Add tool_message to session
-                for tool_message in tool_messages:
+                for tool_message in (m for m in tool_messages if m is not None):
                     session.add_message(tool_message)
 
             # If task completion is triggered, return result

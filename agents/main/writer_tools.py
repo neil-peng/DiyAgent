@@ -12,6 +12,25 @@ if not os.path.exists(output_dir):
 
 
 @tool_with_confirm
+def set_story_language(
+    language: str,
+    reason: Optional[str] = None,
+    session_id: Optional[str] = "writer_tools"
+) -> str:
+    """
+    Set the story language
+    Parameters:
+    - language: story language
+    - reason: reason for calling the tool, used to output the current step description
+    Returns:
+    - str: story language
+    """
+    log(session_id,
+        f"set_story_language call with language: {language}, reason: {reason}", LogLevel.DEBUG)
+    return f"Story language set to: {language}"
+
+
+@tool_with_confirm
 def prompt_title(
     title: str,
     reason: Optional[str] = None,
@@ -110,11 +129,15 @@ def prompt_chunk_content(
     session_id: Optional[str] = "writer_tools"
 ) -> str:
     """
-    Generate novel content fragment, chunk_index starts from 1, if the previous chunk_index is not confirmed, regenerate the content of the previous chunk_index until the previous chunk_index is confirmed.
-    参数说明：
+    Generate novel content fragment, chunk_index starts from 1.
+    If the previous chunk_index is not confirmed, regenerate the content of the previous chunk_index until the previous chunk_index is confirmed. 
+    If the previous chunk_index is confirmed, generate the content of the current chunk_index, do not repeat the content of the previous chunk_index.
+
+    Parameters:
     - chunk_index: content fragment index number
     - content: content fragment
     - reason: reason for calling the tool, used to output the current step description
+
     Returns:
     - str: content fragment
     """
@@ -199,5 +222,5 @@ def finish_writing(
     return answer
 
 
-writer_tools = [prompt_title,
+writer_tools = [set_story_language, prompt_title,
                 prompt_roles, prompt_story_outline, prompt_chunk_content, finish_writing]

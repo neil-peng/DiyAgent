@@ -16,8 +16,8 @@ module.exports = function (app) {
             pathRewrite: {
                 '^/api': '',
             },
-            timeout: 30000,
-            proxyTimeout: 30000,
+            timeout: 130000,
+            proxyTimeout: 130000,
         })
     );
 };

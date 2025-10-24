@@ -19,6 +19,7 @@ const MessageContent = styled.div`
   color: ${(props) => (props.isUser ? "#111111" : "#1c1c1e")};
   position: relative;
   word-break: break-all;
+  
   p {
     font-family: PingFang SC;
     font-size: 14px;
@@ -29,6 +30,35 @@ const MessageContent = styled.div`
     margin: 0;
     padding: 8px 12px;
   }
+  
+  /* Tool message 特殊样式 */
+  ${(props) => props.isToolMessage && `
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-left: 4px solid #22c55e;
+    
+    p {
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      color: #166534;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    strong {
+      color: #15803d;
+      font-weight: 600;
+    }
+    
+    code {
+      background: #dcfce7;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #166534;
+    }
+  `}
 `;
 
 // Add a new styled component for our modern typing indicator
@@ -46,11 +76,11 @@ const StreamingIndicator = styled.div`
     font-size: 10px;
     display: inline-block;
     color: ${(props) =>
-      props.isUser ? "rgba(255, 255, 255, 0.9)" : "#4CAF50"};
+    props.isUser ? "rgba(255, 255, 255, 0.9)" : "#4CAF50"};
     filter: drop-shadow(
       0 0 1px
         ${(props) =>
-          props.isUser ? "rgba(255, 255, 255, 0.5)" : "rgba(76, 175, 80, 0.5)"}
+    props.isUser ? "rgba(255, 255, 255, 0.5)" : "rgba(76, 175, 80, 0.5)"}
     );
   }
 
@@ -192,10 +222,13 @@ const ToolArgsContainer = styled.div`
 // 参数列表项
 const ToolArgItem = styled.div`
   display: flex;
-  align-items: center;
-  padding: 3px 0;
+  align-items: flex-start;
+  padding: 8px 0;
   font-size: 0.75rem;
   line-height: 1.3;
+  gap: 8px;
+  width: 100%;
+  max-width: none;
 
   &:last-child {
     padding-bottom: 0;
@@ -209,8 +242,7 @@ const ToolArgItem = styled.div`
 // 列表项前缀（圆点）
 const ToolArgBullet = styled.span`
   color: #007aff;
-  margin-right: 8px;
-  margin-top: 2px;
+  margin-top: 12px;
   flex-shrink: 0;
   font-weight: bold;
 `;
@@ -220,10 +252,13 @@ const ToolArgKey = styled.span`
   font-family: PingFang SC;
   font-size: 14px;
   font-weight: 500;
-  line-height: 22px;
-  text-align: right;
+  line-height: 20px;
   letter-spacing: 0px;
   color: #1e293b;
+  margin-top: 12px;
+  min-width: 80px;
+  max-width: 120px;
+  flex-shrink: 0;
 `;
 
 // 参数值
@@ -234,7 +269,10 @@ const ToolArgValue = styled.span`
   line-height: 22px;
   letter-spacing: 0px;
   color: #6e7b8d;
-  margin-left: 5px;
+  margin-top: 6px;
+  flex: 1;
+  word-break: break-all;
+  padding: 6px 0;
 `;
 
 const ToolCallButtons = styled.div`
@@ -297,6 +335,128 @@ const CancelButton = styled.button`
     background: #6c757d;
     cursor: not-allowed;
     transform: none;
+  }
+`;
+
+const EditButton = styled.button`
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 14px;
+  width: 80px;
+  margin-left: 4px;
+
+  &:hover {
+    background: #0056b3;
+    transform: translateY(-0.5px);
+  }
+
+  &:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const ModifyConfirmButton = styled.button`
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 14px;
+  width: 100px;
+  margin-left: 4px;
+
+  &:hover {
+    background: #138496;
+    transform: translateY(-0.5px);
+  }
+
+  &:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const RegenerateButton = styled.button`
+  background: #fd7e14;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 14px;
+  width: 80px;
+  margin-left: 4px;
+
+  &:hover {
+    background: #e8650e;
+    transform: translateY(-0.5px);
+  }
+
+  &:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const EditableArgInput = styled.textarea`
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: PingFang SC, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: normal;
+  line-height: 1.6;
+  letter-spacing: 0px;
+  color: #6e7b8d;
+  background: #fff;
+  width: 100%;
+  min-width: 400px;
+  min-height: 120px;
+  max-height: 400px;
+  resize: vertical;
+  box-sizing: border-box;
+  overflow-y: auto;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  flex: 1;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+
+  &::placeholder {
+    color: #999;
+    font-size: 14px;
+    line-height: 1.6;
   }
 `;
 
@@ -439,6 +599,8 @@ const Message = ({ message, messageId }) => {
     cancelToolCall,
     confirmSingleToolCall,
     cancelSingleToolCall,
+    modifyAndConfirmToolCall,
+    regenerateToolCall,
     isLoading,
     isProcessingToolCalls,
   } = useContext(ChatContext);
@@ -447,21 +609,88 @@ const Message = ({ message, messageId }) => {
   // JSON 显示相关状态
   const [jsonCollapsed, setJsonCollapsed] = useState({}); // 用对象存储每个JSON块的收起状态
 
+  // 工具调用编辑状态
+  const [editingToolCalls, setEditingToolCalls] = useState({}); // 存储正在编辑的工具调用
+  const [editedArgs, setEditedArgs] = useState({}); // 存储编辑后的参数
+
+  // 处理编辑模式切换
+  const toggleEditMode = (toolCallId) => {
+    setEditingToolCalls(prev => ({
+      ...prev,
+      [toolCallId]: !prev[toolCallId]
+    }));
+
+    // 如果进入编辑模式，初始化编辑参数
+    if (!editingToolCalls[toolCallId]) {
+      const toolCall = toolCalls?.find(tc => tc.tool_call_id === toolCallId) ||
+        (toolCall?.tool_call_id === toolCallId ? toolCall : null);
+      if (toolCall) {
+        setEditedArgs(prev => ({
+          ...prev,
+          [toolCallId]: { ...(toolCall.tool_call_args || toolCall.tool_args) }
+        }));
+      }
+    }
+  };
+
+  // 更新编辑的参数值
+  const updateEditedArg = (toolCallId, key, value) => {
+    setEditedArgs(prev => ({
+      ...prev,
+      [toolCallId]: {
+        ...prev[toolCallId],
+        [key]: value
+      }
+    }));
+  };
+
+  // 自适应高度函数 - 只在初始化时调用
+  const autoResizeTextarea = (textarea) => {
+    if (textarea && !textarea._initialized) {
+      // 标记已初始化，避免重复调整
+      textarea._initialized = true;
+
+      // 计算内容需要的高度
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      const newHeight = Math.max(60, scrollHeight);
+      textarea.style.height = newHeight + 'px';
+    }
+  };
+
   // 列表式参数显示渲染函数
-  const renderToolArgs = (args) => {
+  const renderToolArgs = (args, toolCallId, isEditing = false) => {
     if (!args || typeof args !== "object") {
       return null;
     }
 
+    const argsToRender = isEditing ? (editedArgs[toolCallId] || args) : args;
+
     return (
       <ToolArgsContainer>
-        {Object.entries(args)
+        {Object.entries(argsToRender)
           .filter(([key]) => key !== "reason")
           .map(([key, value]) => (
             <ToolArgItem key={key}>
               <ToolArgBullet>•</ToolArgBullet>
               <ToolArgKey>{key}:</ToolArgKey>
-              <ToolArgValue>{String(value)}</ToolArgValue>
+              {isEditing ? (
+                <EditableArgInput
+                  ref={(el) => {
+                    if (el) {
+                      // 初始化时调整高度
+                      setTimeout(() => autoResizeTextarea(el), 0);
+                    }
+                  }}
+                  value={String(value)}
+                  onChange={(e) => {
+                    updateEditedArg(toolCallId, key, e.target.value);
+                  }}
+                  placeholder={`输入${key}的值`}
+                />
+              ) : (
+                <ToolArgValue>{String(value)}</ToolArgValue>
+              )}
             </ToolArgItem>
           ))}
       </ToolArgsContainer>
@@ -1044,9 +1273,15 @@ const Message = ({ message, messageId }) => {
               const componentIndex = parseInt(componentMatch[1]);
               return jsonComponents[componentIndex];
             } else if (part.trim()) {
+              // 处理转义字符
+              const processedPart = part
+                .replace(/\\n/g, '\n')
+                .replace(/\\t/g, '\t')
+                .replace(/\\r/g, '\r');
+
               return (
                 <div key={`text-${index}`} className="text-content">
-                  <ReactMarkdown>{part}</ReactMarkdown>
+                  <ReactMarkdown>{processedPart}</ReactMarkdown>
                 </div>
               );
             }
@@ -1057,79 +1292,138 @@ const Message = ({ message, messageId }) => {
     }
 
     // 普通文本内容
-    return <ReactMarkdown>{content}</ReactMarkdown>;
+    // 处理转义字符，将 \n 转换为实际换行符
+    const processedContent = content
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t')
+      .replace(/\\r/g, '\r');
+
+    return <ReactMarkdown>{processedContent}</ReactMarkdown>;
   };
 
   // 渲染单个工具调用
-  const renderSingleToolCall = (toolCall, toolCallStatus) => (
-    <ToolCallDetails key={toolCall.tool_call_id || toolCall.tool_id}>
-      <ToolCallHeader>
+  const renderSingleToolCall = (toolCall, toolCallStatus) => {
+    const toolCallId = toolCall.tool_call_id || toolCall.tool_id;
+    const isEditing = editingToolCalls[toolCallId];
+
+    return (
+      <ToolCallDetails key={toolCallId}>
+        <ToolCallHeader>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              background: "#E2E8F0",
+              padding: "5px 10px",
+              width: "100%",
+              fontFamily: "PingFang SC",
+              fontSize: "12px",
+              fontWeight: 500,
+              lineHeight: "22px",
+              letterSpacing: "0px",
+            }}
+          >
+            <span>
+              {toolCall?.tool_call_name || toolCall?.tool_name || "Unknown Tool"}
+            </span>
+          </div>
+        </ToolCallHeader>
+        <div style={{ border: "1px solid #E2E8F0", width: "100%" }}></div>
+        {renderToolArgs(
+          toolCall?.tool_call_args || toolCall?.tool_args,
+          toolCallId,
+          isEditing
+        )}
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            background: "#E2E8F0",
-            padding: "5px 10px",
+            border: "1px solid #E2E8F0",
             width: "100%",
-            fontFamily: "PingFang SC",
-            fontSize: "12px",
-            fontWeight: 500,
-            lineHeight: "22px",
-            letterSpacing: "0px",
+            marginBottom: "3px",
           }}
-        >
-          <span>
-            {toolCall?.tool_call_name || toolCall?.tool_name || "Unknown Tool"}
-          </span>
-        </div>
-        {/* <ToolName>
-          {toolCall?.tool_call_name || toolCall?.tool_name || "Unknown Tool"}
-        </ToolName> */}
-      </ToolCallHeader>
-      <div style={{ border: "1px solid #E2E8F0", width: "100%" }}></div>
-      {renderToolArgs(toolCall?.tool_call_args || toolCall?.tool_args)}
-      <div
-        style={{
-          border: "1px solid #E2E8F0",
-          width: "100%",
-          marginBottom: "3px",
-        }}
-      ></div>
-      {!toolCallStatus && !message.isToolCallReadOnly && (
-        <ToolCallButtons>
-          <ConfirmButton
-            onClick={() =>
-              confirmSingleToolCall(toolCall.tool_call_id || toolCall.tool_id)
-            }
-            disabled={isLoading || isProcessingToolCalls}
-          >
-            ✓ 确认
-          </ConfirmButton>
-          <CancelButton
-            onClick={() =>
-              cancelSingleToolCall(toolCall.tool_call_id || toolCall.tool_id)
-            }
-            disabled={isLoading || isProcessingToolCalls}
-          >
-            ✕ 取消
-          </CancelButton>
-        </ToolCallButtons>
-      )}
-      <div style={{ display: "flex", justifyContent: "center" }}>
-        {toolCallStatus && (
-          <ToolCallStatusBadge status={toolCallStatus}>
-            {toolCallStatus === "confirmed" ? (
-              <>✓ 已确认执行</>
-            ) : toolCallStatus === "cancelled" ? (
-              <>✕ 已取消</>
+        ></div>
+        {!toolCallStatus && !message.isToolCallReadOnly && (
+          <ToolCallButtons>
+            {isEditing ? (
+              <>
+                <ModifyConfirmButton
+                  onClick={() => {
+                    const modifiedArgs = editedArgs[toolCallId];
+                    if (modifyAndConfirmToolCall) {
+                      modifyAndConfirmToolCall(toolCallId, modifiedArgs);
+                    }
+                    setEditingToolCalls(prev => ({ ...prev, [toolCallId]: false }));
+                  }}
+                  disabled={isLoading || isProcessingToolCalls}
+                >
+                  ✓ 修改确认
+                </ModifyConfirmButton>
+                <CancelButton
+                  onClick={() => {
+                    setEditingToolCalls(prev => ({ ...prev, [toolCallId]: false }));
+                    // 重置编辑的参数
+                    setEditedArgs(prev => {
+                      const newArgs = { ...prev };
+                      delete newArgs[toolCallId];
+                      return newArgs;
+                    });
+                  }}
+                  disabled={isLoading || isProcessingToolCalls}
+                >
+                  ✕ 取消编辑
+                </CancelButton>
+              </>
             ) : (
-              <>⏳ 处理中...</>
+              <>
+                <ConfirmButton
+                  onClick={() =>
+                    confirmSingleToolCall(toolCallId)
+                  }
+                  disabled={isLoading || isProcessingToolCalls}
+                >
+                  ✓ 确认
+                </ConfirmButton>
+                <EditButton
+                  onClick={() => toggleEditMode(toolCallId)}
+                  disabled={isLoading || isProcessingToolCalls}
+                >
+                  ✏️ 修改
+                </EditButton>
+                <CancelButton
+                  onClick={() =>
+                    cancelSingleToolCall(toolCallId)
+                  }
+                  disabled={isLoading || isProcessingToolCalls}
+                >
+                  ✕ 取消
+                </CancelButton>
+                <RegenerateButton
+                  onClick={() =>
+                    regenerateToolCall(toolCallId)
+                  }
+                  disabled={isLoading || isProcessingToolCalls}
+                >
+                  🔄 重来
+                </RegenerateButton>
+              </>
             )}
-          </ToolCallStatusBadge>
+          </ToolCallButtons>
         )}
-      </div>
-    </ToolCallDetails>
-  );
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          {toolCallStatus && toolCallStatus !== "regenerate" && (
+            <ToolCallStatusBadge status={toolCallStatus}>
+              {toolCallStatus === "confirmed" ? (
+                <>✓ 已确认执行</>
+              ) : toolCallStatus === "cancelled" ? (
+                <>✕ 已取消</>
+              ) : (
+                <>⏳ 处理中...</>
+              )}
+            </ToolCallStatusBadge>
+          )}
+        </div>
+      </ToolCallDetails>
+    );
+  };
 
   // 检查是否所有工具调用都已完成
   const getAllToolCallsStatus = () => {
@@ -1194,14 +1488,13 @@ const Message = ({ message, messageId }) => {
       ) : (
         <MessageContent
           isUser={isUser}
+          isToolMessage={message.isToolMessage}
           style={
             message.isToolMessage
               ? {
-                  background: "#ffffff !important",
-                  boxShadow: "none",
-                  border: "none",
-                  padding: "0",
-                }
+                boxShadow: "none",
+                padding: "12px 16px",
+              }
               : {}
           }
         >

@@ -299,6 +299,7 @@ class RedisSession(Session):
         raise NotImplementedError(
             "RedisSession does not support delete_reverse_messages")
 
+    # fixme: this method is not efficient, need to optimize
     def delete_reverse_message(self, index: int):
         """
         Delete the index-th message from the end

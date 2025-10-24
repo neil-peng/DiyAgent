@@ -7,6 +7,8 @@ from session import Session
 from typing import Optional
 from typing import Generator
 from langchain_core.tools import tool
+from langchain_core.messages.tool import ToolCall
+from enum import StrEnum
 
 from typing import Callable, Any, Dict
 
@@ -36,12 +38,20 @@ def tool_with_confirm(
         return _make_tool_with_confirm(func)
 
 
+class ToolConfirmType(StrEnum):
+    CONFIRMED = "confirmed"
+    EDITED_CONFIRMED = "edited_confirmed"
+    CANCELLED = "cancelled"
+    REGENERATE = "regenerate"
+    TO_CONFIRM = "to_confirm"
+
+
 @dataclass
 class ToolCallToConfirm:
     tool_call_name: Optional[str]
     tool_call_id: Optional[str]
     tool_call_args: Optional[dict]
-    tool_confirm_action: Optional[str]
+    tool_confirm_action: Optional[ToolConfirmType]
 
     def to_dict(self) -> dict:
         """
@@ -85,7 +95,7 @@ def default_confirmation_callback(tool_call: dict) -> bool:
             print("please input y/n")
 
 
-def ui_confirmation_callback(tool_call: dict, tool_call_to_confirms: list[ToolCallToConfirm]) -> str:
+def ui_confirmation_callback(tool_call: dict, tool_call_to_confirms: list[ToolCallToConfirm]) -> ToolConfirmType:
     """
     UI confirmation callback function - supports function-level confirmation configuration
 
@@ -100,12 +110,10 @@ def ui_confirmation_callback(tool_call: dict, tool_call_to_confirms: list[ToolCa
     if tool_call_to_confirms is not None and len(tool_call_to_confirms) > 0:
         for tool_call_to_confirm in tool_call_to_confirms:
             if tool_call_to_confirm.tool_call_id == tool_call["id"]:
-                if tool_call_to_confirm.tool_confirm_action == "confirmed":
-                    return "confirmed"
-                elif tool_call_to_confirm.tool_confirm_action == "cancelled":
-                    return "cancelled"
+                if tool_call_to_confirm.tool_confirm_action in [e.value for e in ToolConfirmType]:
+                    return tool_call_to_confirm.tool_confirm_action
 
-    return "to_confirm"
+    return ToolConfirmType.TO_CONFIRM
 
 
 def check_tool_requires_confirmation(tool_executor: 'ToolExecutor', tool_name: str) -> bool:
@@ -125,6 +133,18 @@ def check_tool_requires_confirmation(tool_executor: 'ToolExecutor', tool_name: s
     else:
         # Default no confirmation needed
         return False
+
+
+def find_tool_args_by_id(session_id: str, tool_call: ToolCall, tool_calls_to_confirm: list[ToolCallToConfirm]) -> dict:
+    for tool_call_to_confirm in tool_calls_to_confirm:
+        if tool_call_to_confirm.tool_call_id == tool_call["id"]:
+            for key in tool_call["args"].keys():
+                if tool_call_to_confirm.tool_call_args is not None and key in tool_call_to_confirm.tool_call_args:
+                    tool_call["args"][key] = tool_call_to_confirm.tool_call_args[key]
+            return tool_call["args"]
+    log(session_id, f"tool call to confirm not found",
+        level=LogLevel.ERROR)
+    return None
 
 
 class ToolExecutor:
@@ -157,7 +177,7 @@ class ToolExecutor:
             log(session.session_id, f"last ai_message: {message}",
                 level=LogLevel.DEBUG)
             if isinstance(message, AIMessage) and message.tool_calls is not None:
-                # Iterate through tool calls in the message
+                # Iterate through tool calls in the message, for parallel tool calls
                 for tool_call in message.tool_calls:
                     log(session.session_id, f"tool_call: {tool_call}, content: {message.content}",
                         level=LogLevel.DEBUG)
@@ -165,21 +185,16 @@ class ToolExecutor:
                     # If user confirmation is enabled, user confirmation is required
                     if self.enable_confirmation:
                         # Use new confirmation check function
-                        requires_confirm = check_tool_requires_confirmation(
+                        need_confirm: bool = check_tool_requires_confirmation(
                             self, tool_call["name"])
 
-                        if requires_confirm:
-                            confirmed: str = ui_confirmation_callback(
+                        if need_confirm:
+                            confirm_type: ToolConfirmType = ui_confirmation_callback(
                                 tool_call, tool_calls_to_confirm_feedback)
                             log(session.session_id,
-                                f"confirmed: {confirmed}", level=LogLevel.DEBUG)
+                                f"confirm_type: {confirm_type}", level=LogLevel.DEBUG)
 
-                            # If llm infers auth_token, delete this inferred auth_token parameter
-                            if "auth_token" in tool_call["args"]:
-                                log(session.session_id, f"Delete inferred auth_token parameter: {tool_call['args']}",
-                                    level=LogLevel.ERROR)
-                                del tool_call["args"]["auth_token"]
-                            if confirmed == "to_confirm":
+                            if confirm_type == ToolConfirmType.TO_CONFIRM:
                                 log(session.session_id, f"User confirmation required: {tool_call['name']}",
                                     level=LogLevel.DEBUG)
                                 if "reason" in tool_call["args"]:
@@ -190,17 +205,49 @@ class ToolExecutor:
                                     tool_call_name=tool_call_reason,
                                     tool_call_id=tool_call["id"],
                                     tool_call_args=tool_call["args"],
-                                    tool_confirm_action="to_confirm",
+                                    tool_confirm_action=ToolConfirmType.TO_CONFIRM,
                                 ))
                                 continue
-                            elif confirmed == "cancelled":
+
+                            elif confirm_type == ToolConfirmType.EDITED_CONFIRMED:
+                                edit_tool_args = find_tool_args_by_id(
+                                    session.session_id, tool_call, tool_calls_to_confirm_feedback)
+                                log(session.session_id, f"tool_name: {tool_call['name']}, edit_tool_args: {edit_tool_args}",
+                                    level=LogLevel.DEBUG)
+                                # replace the tool call args with the edited tool call args
+                                tool_call["args"] = edit_tool_args
+
+                            elif confirm_type == ToolConfirmType.REGENERATE:
+                                log(session.session_id, f"User regenerate tool call: {tool_call['name']}",
+                                    level=LogLevel.DEBUG)
+                                # If user refuses, return a message indicating refusal
+                                # tool_messages.append(
+                                #     # fixme: how to control the cancel message, some need only cancel, some need retry.
+                                #     ToolMessage(
+                                #         content=json.dumps({
+                                #             "status": ToolConfirmType.REGENERATE,
+                                #             "message": f"User cancelled tool call: {tool_call['name']}, regenerate the response of tool call",
+                                #         }, ensure_ascii=False),
+                                #         name=tool_call["name"],
+                                #         tool_call_id=tool_call["id"],
+                                #     )
+                                # )
+                                session.delete_reverse_message(1)
+                                log(session.session_id, f"delete last one message",
+                                    level=LogLevel.DEBUG)
+                                # fixme: not elegant, need to optimize
+                                tool_messages.append(None)
+                                continue
+
+                            elif confirm_type == ToolConfirmType.CANCELLED:
                                 log(session.session_id, f"User cancelled tool call: {tool_call['name']}",
                                     level=LogLevel.DEBUG)
                                 # If user refuses, return a message indicating refusal
                                 tool_messages.append(
+                                    # fixme: how to control the cancel message, some need only cancel, some need retry.
                                     ToolMessage(
                                         content=json.dumps({
-                                            "status": "cancelled",
+                                            "status": ToolConfirmType.CANCELLED.value,
                                             "message": f"User cancelled tool call: {tool_call['name']}"
                                         }, ensure_ascii=False),
                                         name=tool_call["name"],
@@ -213,9 +260,7 @@ class ToolExecutor:
                             pass
 
                     # Execute tool call
-                    # auth_token needs to be obtained from session, cannot be inferred
-                    auth_token = session.get_ctx("authorization_token")
-                    tool_call["args"]["auth_token"] = auth_token
+                    # pass session_id to tool call
                     tool_call["args"]["session_id"] = session.session_id
                     log(session.session_id, f"invoke tool_call: {tool_call}",
                         level=LogLevel.DEBUG)

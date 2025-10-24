@@ -718,7 +718,8 @@ export const ChatProvider = ({ children }) => {
     const allCompleted = capturedPendingToolCalls.tools.every(
       (tool) =>
         toolMessage.toolCallStatuses[tool.tool_call_id] === "confirmed" ||
-        toolMessage.toolCallStatuses[tool.tool_call_id] === "cancelled"
+        toolMessage.toolCallStatuses[tool.tool_call_id] === "cancelled" ||
+        toolMessage.toolCallStatuses[tool.tool_call_id] === "regenerate"
     );
 
     console.log("[TOOL] 检查工具状态 (捕获数据):", {
@@ -737,11 +738,34 @@ export const ChatProvider = ({ children }) => {
       try {
         // 构建带状态的工具调用数组
         const toolCallsWithStatus = capturedPendingToolCalls.tools.map(
-          (tool) => ({
-            ...tool,
-            tool_confirm_action:
-              toolMessage.toolCallStatuses[tool.tool_call_id],
-          })
+          (tool) => {
+            const status = toolMessage.toolCallStatuses[tool.tool_call_id];
+
+            // 检查工具调用是否被修改过
+            const toolCallInMessage = toolMessage.toolCalls?.find(
+              tc => tc.tool_call_id === tool.tool_call_id
+            );
+            const isModified = toolCallInMessage?.modified;
+
+            // 如果是确认状态且被修改过，使用 edited_confirmed
+            const action = (status === "confirmed" && isModified)
+              ? "edited_confirmed"
+              : status;
+
+            // 如果工具调用被修改过，使用修改后的参数
+            const finalTool = isModified && toolCallInMessage
+              ? {
+                ...tool,
+                tool_call_args: toolCallInMessage.tool_call_args,
+                tool_args: toolCallInMessage.tool_args,
+              }
+              : tool;
+
+            return {
+              ...finalTool,
+              tool_confirm_action: action,
+            };
+          }
         );
 
         console.log(
@@ -1095,9 +1119,86 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
+  // 修改并确认工具调用
+  const modifyAndConfirmToolCall = async (toolCallId, modifiedArgs) => {
+    console.log(`[TOOL] 修改并确认工具调用: ${toolCallId}`, modifiedArgs);
+
+    if (!pendingToolCalls) {
+      console.log(`[TOOL] modifyAndConfirmToolCall 返回：pendingToolCalls 为空`);
+      return;
+    }
+
+    // 捕获当前的 pendingToolCalls 值，避免闭包问题
+    const currentPendingToolCalls = pendingToolCalls;
+
+    // 更新消息中的工具调用状态和参数
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      const toolMessage = newMessages.find(
+        (msg) => msg.id === currentPendingToolCalls.messageId
+      );
+      if (toolMessage) {
+        // 更新工具调用状态
+        if (toolMessage.toolCallStatuses) {
+          toolMessage.toolCallStatuses[toolCallId] = "confirmed";
+        }
+
+        // 更新工具调用参数
+        if (toolMessage.toolCalls) {
+          const toolCallIndex = toolMessage.toolCalls.findIndex(
+            tc => tc.tool_call_id === toolCallId
+          );
+          if (toolCallIndex !== -1) {
+            toolMessage.toolCalls[toolCallIndex] = {
+              ...toolMessage.toolCalls[toolCallIndex],
+              tool_call_args: modifiedArgs,
+              tool_args: modifiedArgs, // 兼容性
+              modified: true // 标记为已修改
+            };
+          }
+        }
+
+        console.log(`[TOOL] 工具状态和参数已更新: ${toolCallId} -> confirmed (modified)`);
+      }
+      return newMessages;
+    });
+
+    // 触发检查和发送逻辑
+    setTimeout(() => {
+      checkAndSendAllToolCallsWithCapturedData(currentPendingToolCalls);
+    }, 50);
+  };
+
   // 兼容函数：单个工具调用确认/取消
   const confirmSingleToolCall = (toolCallId) => confirmToolCall(toolCallId);
   const cancelSingleToolCall = (toolCallId) => cancelToolCall(toolCallId);
+
+  // 重新生成工具调用
+  const regenerateToolCall = async (toolCallId) => {
+    console.log(`[TOOL] 重新生成工具调用: ${toolCallId}`);
+
+    if (!pendingToolCalls) return;
+
+    // 捕获当前的 pendingToolCalls 值，避免闭包问题
+    const currentPendingToolCalls = pendingToolCalls;
+
+    // 更新消息中的工具调用状态
+    setMessages((prev) => {
+      const newMessages = [...prev];
+      const toolMessage = newMessages.find(
+        (msg) => msg.id === currentPendingToolCalls.messageId
+      );
+      if (toolMessage && toolMessage.toolCallStatuses) {
+        toolMessage.toolCallStatuses[toolCallId] = "regenerate";
+      }
+      return newMessages;
+    });
+
+    // 延迟检查，使用捕获的值
+    setTimeout(() => {
+      checkAndSendAllToolCallsWithCapturedData(currentPendingToolCalls);
+    }, 50);
+  };
 
   // 调试函数 - 测试历史消息解析
   const debugParseHistoryMessage = (rawMessage) => {
@@ -1241,6 +1342,8 @@ export const ChatProvider = ({ children }) => {
         cancelToolCall,
         confirmSingleToolCall,
         cancelSingleToolCall,
+        modifyAndConfirmToolCall,
+        regenerateToolCall,
         isProcessingToolCalls,
         loadChatHistory,
         isAutoExecuteEnabled,
