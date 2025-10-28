@@ -1,14 +1,50 @@
-from ast import And
+from session.session import Session
+
+
 import os
-from typing import Any, Optional, Dict
 from langchain_core.tools import tool
 from tools import tool_with_confirm
 from utils import log, LogLevel
 from session import session_manager
+from agents.critic.critic_agent import critic_agent
+from typing import Generator
+from typing import Optional
+from utils.index_store import IndexStore
+
 
 output_dir = "assets"
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
+
+@tool
+def critic_the_chunk_content(
+    chunk_index: int,
+    reason: Optional[str] = None,
+    session_id: Optional[str] = "writer_tools"
+) -> Generator:
+    """
+    after each chunk is generated, you need to get the critic's feedback on the chunk content.  
+
+    Parameters:
+    - chunk_index: novel chapter index
+    - reason: reason for calling the tool, used to output the current step description
+    Returns:
+    - Generator: feedback on the novel chapter content
+    """
+    sub_session_id = f"{session_id}_sub_agent_critic"
+    sub_session: Session = session_manager.get_session(sub_session_id)
+    index_store = IndexStore(session_id)
+    content = index_store.get(chunk_index)
+    if content is None:
+        log(session_id,
+            f"critic_the_chunk_content call with chunk_index: {chunk_index}, error: Content not found", LogLevel.ERROR)
+        return "Content not found"
+    content = str(content)
+    log(session_id,
+        f"critic_the_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}", LogLevel.DEBUG)
+    yield from critic_agent.call(sub_session, content)
+    return "go on"
 
 
 @tool_with_confirm
@@ -150,22 +186,21 @@ def prompt_chunk_content(
         log(session_id,
             f"title: {title}, prompt_chunk_content call with reason: {reason}, error: Please generate novel title first", LogLevel.ERROR)
         return "Please generate novel title first"
-    filename = f"{output_dir}/{title}.txt"
-    log(session_id,
-        f"save_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}", LogLevel.DEBUG)
-    try:
-        with open(filename, 'a', encoding='utf-8') as f:
-            f.write(content)
-        log(session_id,
-            f"Successfully append the {chunk_index}th chunk content to the file: {filename}", LogLevel.DEBUG)
-    except Exception as e:
-        log(session_id,
-            f"Error appending the {chunk_index}th chunk content to the file: {e}", LogLevel.ERROR)
 
-    count = count_content(session_id)
     log(session_id,
-        f"prompt_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}, result: 成功追加第{chunk_index}段内容到文件: {filename}, count: {count}", LogLevel.DEBUG)
-    return f"Confirmed chunk_index: {chunk_index} \n\n Content fragment: {content} \n\n Total word count: {count}, Current chunk word count: {len(content)} \n\n"
+        f"prompt_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}", LogLevel.DEBUG)
+
+    # add content to index store
+    index_store = IndexStore(session_id)
+    index_store.add_meta({
+        "title": title,
+        "session_id": session_id
+    })
+    index_store.add(chunk_index, content)
+
+    log(session_id,
+        f"prompt_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}, result: Successfully added the {chunk_index}th chunk content to the index store", LogLevel.DEBUG)
+    return f"Confirmed chunk_index: {chunk_index} \n\n Content fragment: {content} \n\n Total word count: {index_store.count()}, Current chunk word count: {len(content)} \n\n"
 
 # @tool_with_confirm
 # def refine_chunk_content(
@@ -199,6 +234,7 @@ def finish_writing(
 ) -> str:
     """
     Complete novel writing, need to ensure that the novel word count meets the requirements, and the novel content meets the requirements.
+    It must finish all chunks.
     Parameters:
     - answer: answer
     - reason: reason for calling the tool, used to output the current step description
@@ -223,4 +259,4 @@ def finish_writing(
 
 
 writer_tools = [set_story_language, prompt_title,
-                prompt_roles, prompt_story_outline, prompt_chunk_content, finish_writing]
+                prompt_roles, prompt_story_outline, critic_the_chunk_content, prompt_chunk_content,  finish_writing]

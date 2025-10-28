@@ -11,7 +11,7 @@ from utils import log, LogLevel
 import env
 from tools import ToolCallToConfirm
 from tools import ToolExecutor
-from llm import llm_tools_invoke, llm_tools_stream
+from utils.llm import llm_tools_invoke, llm_tools_stream
 import json
 from typing import Generator
 
@@ -33,15 +33,19 @@ class Agent:
     def __init__(self, name: str,
                  system_prompt: str,
                  job_continue_or_end_prompt: str,
-                 tools: list[str],
-                 max_step: int = 20):
+                 tools: list[str] = None,
+                 max_step: int = 20,
+                 final_tool: str = "final_answer"):
         self.name = name
         self.system_prompt = system_prompt
         self.job_continue_or_end_prompt = job_continue_or_end_prompt
+        if tools is None:
+            tools = []
         self.env_tools: dict[str, list[str]] = {
             "default": tools,
         }
         self.max_step = max_step
+        self.final_tool = final_tool
 
     def add_env_tools(self, env: str, tools: list[str]):
         self.env_tools[env] = tools
@@ -52,7 +56,7 @@ class Agent:
             del self.env_tools[env]
 
     def call(self, session: Session, user_input: str,
-             tool_calls_to_confirm_feedback: list[ToolCallToConfirm]) -> Generator:
+             tool_calls_to_confirm_feedback: list[ToolCallToConfirm] = None) -> Generator:
         if user_input and tool_calls_to_confirm_feedback:
             raise Exception(
                 "user_input and tool_calls_to_confirm_feedback cannot both be non-empty")
@@ -63,7 +67,7 @@ class Agent:
 
         # Get tool set corresponding to environment information mode
         env = session.get_ctx("env")
-        env_tag = env.get("tag", "default")
+        env_tag = env.get("tag", "default") if env is not None else "default"
         env_tools = self.env_tools[env_tag]
         tool_executor = ToolExecutor(env_tools, enable_confirmation=True)
         llm_with_tools = job_intent_llm.bind_tools(
@@ -76,8 +80,7 @@ class Agent:
         if len(user_input) > 0:
             formatted_message: str = self.job_continue_or_end_prompt.format(
                 user_input=user_input, env=session.get_ctx("env"))
-            session.add_message(HumanMessage(
-                content=formatted_message), user_input)
+            session.add_message(HumanMessage(content=formatted_message))
             yield from llm_tools_stream(llm_with_tools, session)
 
         last_ai_message: type[AIMessage] = None
@@ -118,7 +121,7 @@ class Agent:
                 # Return tool call results
                 for tool_message in (m for m in tool_messages if m is not None):
                     # If tool call result is task completion, end loop
-                    if tool_message.name == "final_answer":
+                    if tool_message.name == self.final_tool:
                         log(session.session_id, f"got task_finish: {tool_message}",
                             level=LogLevel.DEBUG)
                         task_finish_flag = True

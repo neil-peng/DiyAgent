@@ -4,12 +4,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Any, Generator, Optional
 import openai
-
 from utils import log, LogLevel
-from main import agent_call
-
+from services.agent_service import *
 from langchain_core.messages import ToolMessage
-from otel import tracer
+from utils.otel import tracer
 import json
 from opentelemetry.trace import Status, StatusCode
 import uuid
@@ -17,8 +15,8 @@ import traceback
 from session import session_manager
 from tools import ToolCallToConfirm
 from env import DEFAULT_PORT, WORKERS, MAX_CONCURRENCY, MAX_REQUESTS
-from llm import LLMToolCallError
-from history import history_manager
+from utils.llm import LLMToolCallError
+from utils.history import history_manager
 
 # Create FastAPI application
 app = FastAPI()
@@ -71,17 +69,6 @@ def get_session_id(request: Request, req_session_id: Optional[str] = None):
 
     # Otherwise generate UUID
     return str(uuid.uuid4())
-
-
-@app.get("/actuator/ping")
-async def ping():
-    log("ping", LogLevel.INFO)
-    return {"message": "pong"}
-
-
-@app.get("/actuator/health")
-async def actuator_health():
-    return {"status": "UP"}
 
 
 @app.post(base_url + "stream/")
