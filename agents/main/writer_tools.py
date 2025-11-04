@@ -44,7 +44,7 @@ def critic_the_chunk_content(
     log(session_id,
         f"critic_the_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}", LogLevel.DEBUG)
     yield from critic_agent.call(sub_session, content)
-    return "go on"
+    return "go on next chunk"
 
 
 @tool_with_confirm
@@ -227,13 +227,13 @@ def prompt_chunk_content(
 
 
 @tool_with_confirm
-def finish_writing(
+def finish_novel(
     answer: Optional[str] = None,
     session_id: Optional[str] = "writer_tools",
     reason: Optional[str] = None
 ) -> str:
     """
-    Complete novel writing, need to ensure that the novel word count meets the requirements, and the novel content meets the requirements.
+    Complete novel, need to ensure that the novel word count meets the requirements, and the novel content meets the requirements.
     It must finish all chunks.
     Parameters:
     - answer: answer
@@ -259,4 +259,4 @@ def finish_writing(
 
 
 writer_tools = [set_story_language, prompt_title,
-                prompt_roles, prompt_story_outline, critic_the_chunk_content, prompt_chunk_content,  finish_writing]
+                prompt_roles, prompt_story_outline, critic_the_chunk_content, prompt_chunk_content,  finish_novel]

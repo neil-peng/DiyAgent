@@ -1,9 +1,5 @@
 from langchain_openai.chat_models.base import ChatOpenAI
-
-
-from langchain_openai.chat_models.base import ChatOpenAI
 from langchain_core.messages.ai import AIMessage
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage, ToolMessage, SystemMessage, HumanMessage
 
 from session import Session
@@ -19,7 +15,7 @@ from typing import Generator
 if env.ENABLE_DASHSCOPE:
     quick_llm = ChatOpenAI(model="qwen-turbo-latest",
                            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", extra_body={"enable_thinking": False})
-    job_intent_llm = ChatOpenAI(model="qwen-turbo-latest",
+    job_intent_llm = ChatOpenAI(model="qwen3-max",
                                 base_url="https://dashscope.aliyuncs.com/compatible-mode/v1", extra_body={"enable_thinking": False})
 else:
     quick_llm = ChatOpenAI(model="gpt-5-nano")
@@ -74,8 +70,11 @@ class Agent:
         env_tag = env.get("tag", "default") if env is not None else "default"
         env_tools = self.env_tools[env_tag]
         tool_executor = ToolExecutor(env_tools, enable_confirmation=True)
-        llm_with_tools = job_intent_llm.bind_tools(
-            env_tools, parallel_tool_calls=enable_parallel_tool_calls)
+        if env_tools:
+            llm_with_tools = job_intent_llm.bind_tools(
+                env_tools, parallel_tool_calls=enable_parallel_tool_calls)
+        else:
+            llm_with_tools = job_intent_llm
         log(session.session_id,
             f"start react loop with env: {env_tag}, user_input: {user_input}, tool_calls_to_confirm_feedback: {tool_calls_to_confirm_feedback}",
             level=LogLevel.DEBUG)
@@ -147,7 +146,7 @@ class Agent:
             # Loop conversation
             last_ai_message = llm_tools_invoke(llm_with_tools, session)
 
-        # fixme, boundary issue
+        # hit boundary，give the opportunity to user to continue the conversation
         if i == self.max_step - 1:
             log(session.session_id, f"end of react loop: {last_ai_message}",
                 level=LogLevel.DEBUG)
