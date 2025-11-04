@@ -57,6 +57,10 @@ class Agent:
 
     def call(self, session: Session, user_input: str,
              tool_calls_to_confirm_feedback: list[ToolCallToConfirm] = None) -> Generator:
+
+        if session.get_message_count() == 0:
+            session.add_message(SystemMessage(content=self.system_prompt))
+
         if user_input and tool_calls_to_confirm_feedback:
             raise Exception(
                 "user_input and tool_calls_to_confirm_feedback cannot both be non-empty")
