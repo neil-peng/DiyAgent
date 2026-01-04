@@ -2,7 +2,7 @@ from session.session import Session
 
 
 import os
-from langchain_core.tools import tool
+from langchain.tools import tool
 from tools import tool_with_confirm
 from utils import log, LogLevel
 from session import session_manager
@@ -22,7 +22,7 @@ def critic_the_chunk_content(
     chunk_index: int,
     reason: Optional[str] = None,
     session_id: Optional[str] = "writer_tools"
-) -> Generator:
+) -> str:
     """
     after each chunk is generated, you need to get the critic's feedback on the chunk content.  
 
@@ -43,8 +43,9 @@ def critic_the_chunk_content(
     content = str(content)
     log(session_id,
         f"critic_the_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}", LogLevel.DEBUG)
-    yield from critic_agent.call(sub_session, content)
-    return "go on next chunk"
+    critic_result = critic_agent.call(sub_session, content)
+    critic_result = next(critic_result)
+    return critic_result
 
 
 @tool_with_confirm
@@ -200,7 +201,7 @@ def prompt_chunk_content(
 
     log(session_id,
         f"prompt_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}, result: Successfully added the {chunk_index}th chunk content to the index store", LogLevel.DEBUG)
-    return f"Confirmed chunk_index: {chunk_index} \n\n Content fragment: {content} \n\n Total word count: {index_store.count()}, Current chunk word count: {len(content)} \n\n"
+    return f"Confirmed chunk_index: {chunk_index} \n\n Content fragment: {content} \n\n Current chunk count: {index_store.count()}, Current chunk word count: {len(content)} \n\n"
 
 # @tool_with_confirm
 # def refine_chunk_content(
@@ -245,8 +246,32 @@ def finish_novel(
     title = session.get_ctx("title")
     filename = f"{output_dir}/{title}.txt"
     try:
-        with open(filename, 'r', encoding='utf-8') as f:
-            content = f.read()
+        if not title:
+            raise ValueError("Please generate novel title first")
+
+        # 从 Redis(IndexStore) 汇总所有 chunk，再落盘到文件
+        index_store = IndexStore(session_id)
+        all_chunks = index_store.get_all()  # {chunk_index: content}
+        if not all_chunks:
+            raise ValueError("No chunk content found in IndexStore")
+
+        def _to_int_key(k) -> int:
+            if isinstance(k, bytes):
+                k = k.decode("utf-8")
+            return int(k)
+
+        sorted_items = sorted(all_chunks.items(),
+                              key=lambda kv: _to_int_key(kv[0]))
+        contents: list[str] = []
+        for _, v in sorted_items:
+            if isinstance(v, bytes):
+                v = v.decode("utf-8")
+            contents.append(str(v))
+
+        content = "\n\n".join(contents)
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(content)
+
         count = len(content)
     except Exception as e:
         log(session_id,

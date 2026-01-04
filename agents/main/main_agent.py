@@ -2,7 +2,6 @@ from tools import time_tools, math_tools
 from agents.agent import Agent
 from agents.main.writer_tools import writer_tools
 
-
 # Default tool set
 default_tools = time_tools + math_tools + writer_tools
 
