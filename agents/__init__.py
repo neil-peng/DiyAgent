@@ -1,3 +1,3 @@
 from .agent import *
-from .main.main_agent import *
-from .auto_plan.plan_agent import *
+from .auto_plan_main.plan_agent import *
+from .workflow_main.workflow_agent import *

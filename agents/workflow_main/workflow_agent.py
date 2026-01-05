@@ -1,6 +1,6 @@
 from tools import time_tools, math_tools
 from agents.agent import Agent
-from agents.main.writer_tools import writer_tools
+from agents.auto_plan_main.writer_tools import writer_tools
 
 # Default tool set
 default_tools = time_tools + math_tools + writer_tools
@@ -41,9 +41,9 @@ Strengthen character motivation and dialogue: Reveal character traits and positi
 """
 
 # Main agent
-main_agent = Agent("main_agent",
-                   system_prompt,
-                   job_continue_or_end_prompt,
-                   default_tools, final_tool="finish_novel")
+workflow_agent = Agent("workflow_agent",
+                       system_prompt,
+                       job_continue_or_end_prompt,
+                       default_tools, final_tool="finish_novel")
 # Add UI tool set
 # main_agent.add_env_tools("ui", ui_tools)

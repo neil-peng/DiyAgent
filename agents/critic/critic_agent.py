@@ -11,6 +11,7 @@ job_continue_or_end_prompt = """
 # The content of the novel chapter is:
 {user_input}
 # Please give feedback on the content of the novel chapter.
+# Limit the length of the feedback to 100 words.
 """
 
 

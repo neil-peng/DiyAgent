@@ -280,14 +280,14 @@ class ToolExecutor:
                         tool_result = yield from tool_result
                         log(session.session_id, f"yield from tool_result: {tool_result}",
                             level=LogLevel.DEBUG)
-                        # If tool returns a generator, handle as stream data, llm no longer further processes tool results
-                        session.add_message(ToolMessage(
-                            content=json.dumps(
-                                tool_result, ensure_ascii=False),
-                            name=tool_call_reason,
-                            tool_call_id=tool_call["id"],
-                        ))
-                        return [], []
+                        # # If tool returns a generator, handle as stream data, llm no longer further processes tool results
+                        # session.add_message(ToolMessage(
+                        #     content=json.dumps(
+                        #         tool_result, ensure_ascii=False),
+                        #     name=tool_call_reason,
+                        #     tool_call_id=tool_call["id"],
+                        # ))
+                        # return [], []
 
                     tool_messages.append(
                         ToolMessage(

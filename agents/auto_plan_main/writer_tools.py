@@ -22,7 +22,7 @@ def critic_the_chunk_content(
     chunk_index: int,
     reason: Optional[str] = None,
     session_id: Optional[str] = "writer_tools"
-) -> str:
+) -> Generator:
     """
     after each chunk is generated, you need to get the critic's feedback on the chunk content.  
 
@@ -43,9 +43,8 @@ def critic_the_chunk_content(
     content = str(content)
     log(session_id,
         f"critic_the_chunk_content call with chunk_index: {chunk_index}, content: {content}, reason: {reason}", LogLevel.DEBUG)
-    critic_result = critic_agent.call(sub_session, content)
-    critic_result = next(critic_result)
-    return critic_result
+    comment = yield from critic_agent.call(sub_session, content)
+    return comment
 
 
 @tool_with_confirm

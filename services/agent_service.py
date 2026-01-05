@@ -1,7 +1,7 @@
 from session import Session
 from tools import ToolCallToConfirm
 from typing import Generator
-from agents import main_agent, auto_plan_agent
+from agents import workflow_agent, auto_plan_agent
 from utils.index_store import IndexStore
 from fastapi.responses import StreamingResponse
 

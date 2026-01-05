@@ -1,6 +1,6 @@
 from tools import time_tools, math_tools
 from agents.agent import Agent
-from agents.main.writer_tools import writer_tools
+from agents.auto_plan_main.writer_tools import writer_tools
 from tools.plan_tools import plan_tools, WRITE_TODOS_SYSTEM_PROMPT
 
 # Default tool set
@@ -12,7 +12,7 @@ default_tools = time_tools + math_tools + \
 system_prompt = """
 # you are a novelist who excels at generating novel content based on user requirements. 
 # you have to use tool write_todos to plan the novel. and check the todo list to see if all the tasks are completed.
-# 在执行完每个任务后，你需要更新todo list，并检查todo list是否已经完成。如果没有完成，你需要尝试调用工具继续执行下一个任务。
+# After completing each task, you need to update the todo list and check whether the todo list has been fully completed. If it has not been completed, you should attempt to invoke the appropriate tools to continue executing the next task.
 # you have to check tool finish_novel after each task is completed to judge whether the whole novel is finished.
 """
 

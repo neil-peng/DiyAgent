@@ -104,7 +104,7 @@ class Agent:
                     log(session.session_id,
                         f"task finished, last message:{last_ai_message.content}")
                     yield last_ai_message.content
-                return
+                return session.get_last_message().content
 
             # Tool interruption confirmation: return tool parameter confirmation result, subsequent tool processing supports batch tool calls.
             if len(tool_calls_to_confirm) > 0:
@@ -116,7 +116,7 @@ class Agent:
                     tool_call_to_confirm_dicts.append(
                         tool_call_to_confirm.to_dict())
                 yield tool_call_to_confirm_dicts
-                return
+                return ""
 
             # Execute tool calls: get tool messages
             finish_answer_message = ToolMessage
@@ -141,7 +141,7 @@ class Agent:
                 answer = json.loads(finish_answer_message.content)
                 log(session.session_id, f"task finished, answer:{answer}")
                 yield answer
-                return
+                return answer
 
             # Loop conversation
             last_ai_message = llm_tools_invoke(llm_with_tools, session)
@@ -150,3 +150,4 @@ class Agent:
         if i == self.max_step - 1:
             log(session.session_id, f"end of react loop: {last_ai_message}",
                 level=LogLevel.DEBUG)
+        return ""
